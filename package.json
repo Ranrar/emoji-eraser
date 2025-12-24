@@ -2,7 +2,7 @@
     "name": "emoji-eraser",
     "displayName": "Emoji Eraser",
     "description": "Highlights emojis and can remove them from the current file.",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "publisher": "ranrar",
     "license": "MIT",
     "icon": "icon.png",
@@ -30,7 +30,8 @@
     ],
     "main": "./out/extension.js",
     "activationEvents": [
-        "onStartupFinished"
+        "onStartupFinished",
+        "*"
     ],
     "contributes": {
         "configuration": {

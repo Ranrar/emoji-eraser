@@ -4,6 +4,7 @@ src/**
 **/*.map
 **/*.ts
 node_modules/**
+!node_modules/emoji-regex/**
 
 # Keep
 !out/**
