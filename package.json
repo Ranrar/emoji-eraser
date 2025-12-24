@@ -1,0 +1,91 @@
+{
+    "name": "emoji-eraser",
+    "displayName": "Emoji Eraser",
+    "description": "Highlights emojis and can remove them from the current file.",
+    "version": "0.0.1",
+    "publisher": "Kim SKov Rasmussen",
+    "license": "MIT",
+    "icon": "icon.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Ranrar/emoji-eraser"
+    },
+    "bugs": {
+        "url": "https://github.com/Ranrar/emoji-eraser/issues"
+    },
+    "engines": {
+        "vscode": "^1.90.0"
+    },
+    "categories": [
+        "Linters",
+        "Formatters"
+    ],
+    "keywords": [
+        "emoji",
+        "unicode",
+        "cleanup",
+        "linter",
+        "code quality",
+        "formatter"
+    ],
+    "main": "./out/extension.js",
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "Emoji Eraser Settings",
+            "properties": {
+                "emojiChecker.ignoreInComments": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Ignore emojis in comments (and all of Markdown files)."
+                },
+                "emojiChecker.ignoreInStrings": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Ignore emojis in string literals."
+                },
+                "emojiChecker.excludePatterns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Glob patterns for files to exclude from emoji checking (e.g., \"**/*.md\", \"**/test/**\")."
+                },
+                "emojiChecker.severity": {
+                    "type": "string",
+                    "enum": [
+                        "Error",
+                        "Warning",
+                        "Information",
+                        "Hint"
+                    ],
+                    "default": "Error",
+                    "description": "Severity of emoji diagnostics."
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "emojiChecker.removeEmoji",
+                "title": "Emoji Eraser: Remove all emojis"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "dependencies": {
+        "emoji-regex": "^10.4.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.0",
+        "@types/vscode": "^1.90.0",
+        "typescript": "^5.5.4"
+    }
+}

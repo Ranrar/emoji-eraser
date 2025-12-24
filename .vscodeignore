@@ -1,0 +1,12 @@
+.vscode/**
+src/**
+*.ts
+**/*.map
+**/*.ts
+node_modules/**
+
+# Keep
+!out/**
+!package.json
+!README.md
+!LICENSE
