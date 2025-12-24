@@ -35,17 +35,22 @@
     "contributes": {
         "configuration": {
             "type": "object",
-            "title": "Emoji Eraser Settings",
+            "title": "Emoji Eraser",
             "properties": {
                 "emojiChecker.ignoreInComments": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Ignore emojis in comments (and all of Markdown files)."
+                    "description": "Ignore emojis in comments."
                 },
                 "emojiChecker.ignoreInStrings": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "description": "Ignore emojis in string literals."
+                },
+                "emojiChecker.ignoreMarkdown": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Ignore all emojis in Markdown and MDX files."
                 },
                 "emojiChecker.excludePatterns": {
                     "type": "array",
@@ -78,7 +83,10 @@
     "scripts": {
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./"
+        "watch": "tsc -watch -p ./",
+        "version:patch": "npm version patch -m 'chore: bump version to %s'",
+        "version:minor": "npm version minor -m 'chore: bump version to %s'",
+        "version:major": "npm version major -m 'chore: bump version to %s'"
     },
     "dependencies": {
         "emoji-regex": "^10.4.0"

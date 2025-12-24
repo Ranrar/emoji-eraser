@@ -19,11 +19,12 @@ function getSeverity(): vscode.DiagnosticSeverity {
     }
 }
 
-function getIgnoreSettings(): { ignoreInComments: boolean; ignoreInStrings: boolean } {
+function getIgnoreSettings(): { ignoreInComments: boolean; ignoreInStrings: boolean; ignoreMarkdown: boolean } {
     const config = vscode.workspace.getConfiguration('emojiChecker');
     return {
         ignoreInComments: config.get<boolean>('ignoreInComments', true),
-        ignoreInStrings: config.get<boolean>('ignoreInStrings', true)
+        ignoreInStrings: config.get<boolean>('ignoreInStrings', false),
+        ignoreMarkdown: config.get<boolean>('ignoreMarkdown', true)
     };
 }
 
@@ -105,12 +106,11 @@ function getCommentSyntax(languageId: string): {
     block: Array<readonly [start: string, end: string]>;
     supportsBacktickStrings: boolean;
     supportsPythonTripleQuotes: boolean;
-    ignoreAll: boolean;
 } {
     const id = languageId.toLowerCase();
 
     if (id === 'markdown' || id === 'mdx') {
-        return { line: [], block: [], supportsBacktickStrings: false, supportsPythonTripleQuotes: false, ignoreAll: true };
+        return { line: [], block: [], supportsBacktickStrings: false, supportsPythonTripleQuotes: false };
     }
 
     if (id === 'html' || id === 'xml' || id === 'xhtml') {
@@ -118,8 +118,7 @@ function getCommentSyntax(languageId: string): {
             line: [],
             block: [['<!--', '-->']],
             supportsBacktickStrings: false,
-            supportsPythonTripleQuotes: false,
-            ignoreAll: false
+            supportsPythonTripleQuotes: false
         };
     }
 
@@ -128,8 +127,7 @@ function getCommentSyntax(languageId: string): {
             line: ['#'],
             block: [],
             supportsBacktickStrings: false,
-            supportsPythonTripleQuotes: true,
-            ignoreAll: false
+            supportsPythonTripleQuotes: true
         };
     }
 
@@ -138,8 +136,7 @@ function getCommentSyntax(languageId: string): {
             line: ['#'],
             block: [],
             supportsBacktickStrings: true,
-            supportsPythonTripleQuotes: false,
-            ignoreAll: false
+            supportsPythonTripleQuotes: false
         };
     }
 
@@ -148,8 +145,7 @@ function getCommentSyntax(languageId: string): {
             line: ['--'],
             block: [['/*', '*/']],
             supportsBacktickStrings: false,
-            supportsPythonTripleQuotes: false,
-            ignoreAll: false
+            supportsPythonTripleQuotes: false
         };
     }
 
@@ -158,8 +154,7 @@ function getCommentSyntax(languageId: string): {
             line: [],
             block: [['/*', '*/']],
             supportsBacktickStrings: false,
-            supportsPythonTripleQuotes: false,
-            ignoreAll: false
+            supportsPythonTripleQuotes: false
         };
     }
 
@@ -168,8 +163,7 @@ function getCommentSyntax(languageId: string): {
         line: ['//'],
         block: [['/*', '*/']],
         supportsBacktickStrings: id === 'javascript' || id === 'typescript' || id === 'javascriptreact' || id === 'typescriptreact',
-        supportsPythonTripleQuotes: false,
-        ignoreAll: false
+        supportsPythonTripleQuotes: false
     };
 }
 
@@ -177,12 +171,24 @@ function buildIgnoreRanges(
     text: string,
     languageId: string,
     ignoreInComments: boolean,
-    ignoreInStrings: boolean
+    ignoreInStrings: boolean,
+    ignoreMarkdown: boolean
 ): IgnoreRange[] {
+    // Check if this is markdown - handle it separately
+    const isMarkdown = languageId.toLowerCase() === 'markdown' || languageId.toLowerCase() === 'mdx';
+    if (isMarkdown) {
+        // For markdown files, ONLY ignoreMarkdown setting matters
+        if (ignoreMarkdown) {
+            return text.length > 0 ? [[0, text.length]] : [];
+        } else {
+            return []; // Don't ignore anything in markdown if setting is false
+        }
+    }
+
+    // For non-markdown files, use ignoreInComments and ignoreInStrings
     if (!ignoreInComments && !ignoreInStrings) return [];
 
     const syntax = getCommentSyntax(languageId);
-    if (syntax.ignoreAll && ignoreInComments) return text.length > 0 ? [[0, text.length]] : [];
 
     const ranges: IgnoreRange[] = [];
 
@@ -358,8 +364,8 @@ function buildIgnoreRanges(
 
 function computeDiagnostics(document: vscode.TextDocument): vscode.Diagnostic[] {
     const text = document.getText();
-    const { ignoreInComments, ignoreInStrings } = getIgnoreSettings();
-    const ignoredRanges = buildIgnoreRanges(text, document.languageId, ignoreInComments, ignoreInStrings);
+    const { ignoreInComments, ignoreInStrings, ignoreMarkdown } = getIgnoreSettings();
+    const ignoredRanges = buildIgnoreRanges(text, document.languageId, ignoreInComments, ignoreInStrings, ignoreMarkdown);
     const severity = getSeverity();
 
     const issues: vscode.Diagnostic[] = [];
