@@ -111,6 +111,7 @@ The automated workflows require two secret tokens to be configured in the reposi
      - Contents: **Read and write**
      - Metadata: Read-only
      - Workflows: **Read and write**
+     - Administration: **Read and write** (required for creating releases)
   6. Copy the token
 - **Add to GitHub:**
   - Repository → Settings → Secrets and variables → Actions
@@ -121,6 +122,19 @@ The automated workflows require two secret tokens to be configured in the reposi
 - **Purpose:** Standard GitHub Actions operations
 - **No setup needed** - automatically provided by GitHub
 - Free and automatically renewed
+
+## Required Repository Settings
+
+For GitHub Actions to work properly:
+
+1. **Go to Repository Settings:**
+   - Repository → Settings → Actions → General
+
+2. **Workflow permissions:**
+   - Select: **Read and write permissions**
+   - Enable: **Allow GitHub Actions to create and approve pull requests**
+
+Without these settings, the automated workflows will fail with 403 errors.
 
 ## Quick Release Checklist
 
