@@ -1,5 +1,5 @@
 {
-    "name": "emoji-eraser",
+    "name": "emoji-detector",
     "displayName": "Emoji Eraser",
     "description": "Highlights emojis and can remove them from the current file.",
     "version": "0.1.0",
