@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - none
           - patch
           - minor
           - major
@@ -39,9 +40,11 @@ jobs:
         run: npm ci
       
       - name: Bump version
+        if: github.event.inputs.version != 'none'
         run: npm run version:${{ github.event.inputs.version }}
       
       - name: Push changes
+        if: github.event.inputs.version != 'none'
         run: |
           git push
           git push --tags
