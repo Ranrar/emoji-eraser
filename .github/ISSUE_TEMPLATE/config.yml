@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions & Discussions
+  - name: 💬 Start a new discussion
+    url: https://github.com/Ranrar/emoji-eraser/discussions/new/choose
+    about: Ask questions, share ideas, or discuss with the community
+  - name: 📖 View all discussions
     url: https://github.com/Ranrar/emoji-eraser/discussions
-    about: Ask questions and discuss ideas with the community
+    about: Browse existing discussions and community conversations
