@@ -2,13 +2,21 @@
 
 Emoji Eraser highlights emojis as diagnostics and provides a command to remove all emojis from the current file.
 
-## Screenshots
+<p align="center">
+  <img src="icon.png" width="128" height="128" alt="Emoji Eraser icon" />
+</p>
 
-### Diagnostics in Action
-![Emoji diagnostics showing detected emojis](screenshots/Screenshot_1.png)
+## Why I created this extension
 
-### Extension Settings
-![Emoji Eraser configuration settings](screenshots/Screenshot_2.png)
+When I'm programming, I often use emojis as placeholders while I'm sketching things out, then later swap them out for SVGs (or other proper assets). Having them highlighted makes them easy to find and replace when it's time to "clean it up."
+
+Also: I'm not a fan of how often AI tooling sprinkles emojis into text and documentation these days. This extension helps me catch and remove them before they slip into commits.
+
+Emoji Eraser exists to:
+
+- Make emojis visible (as diagnostics) instead of quietly hiding in plain sight.
+- Remove them fast (bulk command + per-emoji quick fix).
+- Stay configurable so you can ignore the places where emojis *are* welcome (comments, strings, Markdown).
 
 ## Features
 
@@ -18,6 +26,14 @@ Emoji Eraser highlights emojis as diagnostics and provides a command to remove a
 - 📝 Separate options to ignore emojis in comments, strings, and Markdown files.
 - 🎯 File exclusion patterns to skip specific files or folders.
 - 🗑️ Command: **Emoji Eraser: Remove all emojis** from the current file.
+
+## Screenshots
+
+### Diagnostics in Action
+![Emoji diagnostics showing detected emojis](screenshots/Screenshot_1.png)
+
+### Extension Settings
+![Emoji Eraser configuration settings](screenshots/Screenshot_2.png)
 
 ## Settings
 

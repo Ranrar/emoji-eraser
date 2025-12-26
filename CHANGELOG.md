@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Hardened `excludePatterns` glob matching to avoid incomplete escaping / regex injection issues.
+
 ## [Released]
 
 ## [0.1.2] - 2025-12-25

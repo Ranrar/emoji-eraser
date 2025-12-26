@@ -33,28 +33,59 @@ function getExcludePatterns(): string[] {
     return config.get<string[]>('excludePatterns', []);
 }
 
+function normalizeToPosixPath(value: string): string {
+    // VS Code may return OS-specific separators; normalize to a stable form.
+    return value.replace(/\\/g, '/');
+}
+
+function globToRegExp(glob: string): RegExp {
+    // Convert a small, safe subset of glob syntax to a RegExp.
+    // Supported: **, *, ?, and path separators.
+    // Everything else is escaped to avoid regex injection / incomplete escaping.
+
+    const g = normalizeToPosixPath(glob);
+    let out = '^';
+
+    for (let i = 0; i < g.length; i++) {
+        const ch = g[i];
+
+        if (ch === '*') {
+            if (g[i + 1] === '*') {
+                // "**" matches across path separators
+                out += '.*';
+                i++;
+            } else {
+                // "*" matches within a single path segment
+                out += '[^/]*';
+            }
+            continue;
+        }
+
+        if (ch === '?') {
+            out += '[^/]';
+            continue;
+        }
+
+        // Escape regex metacharacters.
+        if (/[-/\\^$+?.()|[\]{}]/.test(ch)) {
+            out += '\\' + ch;
+        } else {
+            out += ch;
+        }
+    }
+
+    out += '$';
+    return new RegExp(out);
+}
+
 function isFileExcluded(uri: vscode.Uri): boolean {
     const patterns = getExcludePatterns();
     if (patterns.length === 0) return false;
 
-    const relativePath = vscode.workspace.asRelativePath(uri, false);
+    const relativePath = normalizeToPosixPath(vscode.workspace.asRelativePath(uri, false));
     
     for (const pattern of patterns) {
-        // Simple glob matching using VS Code's built-in RelativePattern
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-        if (!workspaceFolder) continue;
-        
-        const globPattern = new vscode.RelativePattern(workspaceFolder, pattern);
-        // Check if the file path matches the pattern
-        const matcher = new RegExp(
-            '^' + pattern
-                .replace(/\./g, '\\.')
-                .replace(/\*\*/g, '.*')
-                .replace(/\*/g, '[^/]*')
-                .replace(/\?/g, '.')
-            + '$'
-        );
-        
+        const matcher = globToRegExp(pattern);
         if (matcher.test(relativePath)) {
             return true;
         }
