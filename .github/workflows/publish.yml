@@ -4,8 +4,6 @@ permissions:
   contents: write
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -28,19 +26,33 @@ jobs:
       - name: Compile TypeScript
         run: npm run compile
       
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
       - name: Publish to VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
         run: |
-          npm install -g @vscode/vsce
           vsce publish -p $VSCE_PAT
       
       - name: Package extension
         run: vsce package
-      
-      - name: Upload VSIX to release
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release and upload VSIX
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: |
+            ## Changes
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
           files: '*.vsix'
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
