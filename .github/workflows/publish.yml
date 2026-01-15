@@ -5,6 +5,16 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'What to do'
+        required: true
+        type: choice
+        default: publish_and_package
+        options:
+          - publish_and_package
+          - publish_only
+          - package_only
 
 jobs:
   publish:
@@ -30,19 +40,25 @@ jobs:
         run: npm install -g @vscode/vsce
 
       - name: Publish to VS Code Marketplace
+        if: ${{ github.event.inputs.mode != 'package_only' }}
         env:
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
         run: |
           vsce publish -p $VSCE_PAT
       
       - name: Package extension
+        if: ${{ github.event.inputs.mode != 'publish_only' }}
         run: vsce package
 
       - name: Get version
         id: version
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+        if: ${{ github.event.inputs.mode != 'publish_only' }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release and upload VSIX
+        if: ${{ github.event.inputs.mode != 'publish_only' }}
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
