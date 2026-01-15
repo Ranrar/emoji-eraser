@@ -2,7 +2,7 @@
     "name": "emoji-detector",
     "displayName": "Emoji Eraser",
     "description": "Highlights emojis and can remove them from the current file.",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "publisher": "ranrar",
     "license": "MIT",
     "icon": "icon.png",
@@ -34,6 +34,12 @@
         "*"
     ],
     "contributes": {
+        "submenus": [
+            {
+                "id": "emojiEraser.submenu",
+                "label": "Emoji Eraser"
+            }
+        ],
         "configuration": {
             "type": "object",
             "title": "Emoji Eraser",
@@ -59,7 +65,7 @@
                         "type": "string"
                     },
                     "default": [],
-                    "description": "Glob patterns for files to exclude from emoji checking (e.g., \"**/*.md\", \"**/test/**\")."
+                    "description": "Exclude file/folder patterns (workspace-relative). Examples: \"*.md\" (any Markdown), \"node_modules\" (that folder), \"dist/**\" (root dist), \"**/dist/**\" (any dist)."
                 },
                 "emojiChecker.severity": {
                     "type": "string",
@@ -77,9 +83,61 @@
         "commands": [
             {
                 "command": "emojiChecker.removeEmoji",
-                "title": "Emoji Eraser: Remove all emojis"
+                "title": "Remove all emojis (current file)",
+                "category": "Emoji Eraser"
+            },
+            {
+                "command": "emojiChecker.excludeThisFile",
+                "title": "Exclude this file",
+                "category": "Emoji Eraser"
+            },
+            {
+                "command": "emojiChecker.excludeAllWithSameExtension",
+                "title": "Exclude all files with this extension",
+                "category": "Emoji Eraser"
+            },
+            {
+                "command": "emojiChecker.excludeThisFolder",
+                "title": "Exclude this folder",
+                "category": "Emoji Eraser"
+            },
+            {
+                "command": "emojiChecker.removeEmojisFromFiles",
+                "title": "Remove emojis from selected file(s)",
+                "category": "Emoji Eraser"
             }
-        ]
+        ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "submenu": "emojiEraser.submenu",
+                    "when": "resourceScheme == file",
+                    "group": "navigation@50"
+                }
+            ],
+            "emojiEraser.submenu": [
+                {
+                    "command": "emojiChecker.removeEmojisFromFiles",
+                    "when": "resourceScheme == file && !explorerResourceIsFolder",
+                    "group": "1_actions"
+                },
+                {
+                    "command": "emojiChecker.excludeAllWithSameExtension",
+                    "when": "resourceScheme == file && !explorerResourceIsFolder",
+                    "group": "2_exclude"
+                },
+                {
+                    "command": "emojiChecker.excludeThisFile",
+                    "when": "resourceScheme == file && !explorerResourceIsFolder",
+                    "group": "2_exclude"
+                },
+                {
+                    "command": "emojiChecker.excludeThisFolder",
+                    "when": "resourceScheme == file && explorerResourceIsFolder",
+                    "group": "2_exclude"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",

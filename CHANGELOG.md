@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Released]
 
+## [0.1.4] - 2026-01-15
+
+### Fixed
+- `excludePatterns` now treats basename-style globs like `*.xx` as matching files anywhere in the workspace (equivalent to also checking `**/*.xx`).
+
+### Added
+- Explorer context submenu (**Emoji Eraser**) with actions to exclude files/folders, exclude by extension (e.g. `*.rs`), and remove emojis from selected file(s).
+
 ## [0.1.3] - 2025-12-26
 
 ### Fixed

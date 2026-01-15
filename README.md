@@ -25,7 +25,11 @@ Emoji Eraser exists to:
 - 💡 **Quick Fix**: Click the lightbulb to remove individual emojis.
 - 📝 Separate options to ignore emojis in comments, strings, and Markdown files.
 - 🎯 File exclusion patterns to skip specific files or folders.
-- 🗑️ Command: **Emoji Eraser: Remove all emojis** from the current file.
+- 🗑️ Command Palette: **Emoji Eraser: Remove all emojis (current file)**.
+- 🖱️ Explorer right-click menu: **Emoji Eraser** submenu with actions to:
+  - Remove emojis from selected file(s)
+  - Exclude this file / exclude this folder
+  - Exclude all files with the same extension (e.g. `*.rs`)
 
 ## Screenshots
 
@@ -48,8 +52,16 @@ Emoji Eraser exists to:
   - Ignores all emojis in Markdown and MDX files.
 
 - **`emojiChecker.excludePatterns`** (array, default: `[]`)
-  - Glob patterns for files to exclude from emoji checking.
-  - Example: `["**/*.md", "**/test/**", "**/node_modules/**"]`
+  - Glob-like patterns for files/folders to exclude from emoji checking.
+  - These are matched against the **workspace-relative path**.
+  - Simple examples (the "easy to type" ones):
+    - `"*.md"` → exclude all Markdown files (anywhere in the workspace)
+    - `"README.md"` → exclude any file named `README.md`
+    - `"node_modules"` → exclude any `node_modules` folder and everything inside it
+  - Path examples:
+    - `"dist/**"` → exclude `dist/` at the workspace root
+    - `"**/dist/**"` → exclude any `dist/` folder anywhere
+    - `"test/**"` or `"**/test/**"` → exclude tests
 
 - **`emojiChecker.severity`** (string, default: `"Error"`)
   - Options: `"Error"`, `"Warning"`, `"Information"`, `"Hint"`
@@ -62,7 +74,8 @@ Emoji Eraser exists to:
 3. Open a file containing emojis (e.g., `test/sample.txt`).
 4. See diagnostics on detected emojis.
 5. **Quick Fix**: Click the 💡 lightbulb icon on an emoji diagnostic and select "Remove this emoji".
-6. **Bulk Remove**: Run **Emoji Eraser: Remove all emojis** from the Command Palette to remove all emojis at once.
+6. **Bulk Remove (current file)**: Run **Emoji Eraser: Remove all emojis (current file)** from the Command Palette.
+7. **Bulk Remove (many files)**: Select files in the Explorer, right-click, then choose **Emoji Eraser → Remove emojis from selected file(s)**.
 
 ## Examples
 

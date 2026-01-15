@@ -33,6 +33,91 @@ function getExcludePatterns(): string[] {
     return config.get<string[]>('excludePatterns', []);
 }
 
+function getConfigTarget(): vscode.ConfigurationTarget {
+    // Best practice: prefer workspace settings so the rule applies to the current project.
+    // Fall back to global settings when there's no workspace open.
+    return vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
+        ? vscode.ConfigurationTarget.Workspace
+        : vscode.ConfigurationTarget.Global;
+}
+
+async function addExcludePattern(pattern: string): Promise<boolean> {
+    const normalized = normalizeToPosixPath((pattern ?? '').trim());
+    if (!normalized) return false;
+
+    const config = vscode.workspace.getConfiguration('emojiChecker');
+    const existing = (config.get<string[]>('excludePatterns', []) || [])
+        .map((p) => normalizeToPosixPath((p ?? '').trim()))
+        .filter(Boolean);
+
+    if (existing.includes(normalized)) {
+        return false;
+    }
+
+    await config.update('excludePatterns', [...existing, normalized], getConfigTarget());
+    return true;
+}
+
+function getRelativePathForResource(uri: vscode.Uri): string {
+    return normalizeToPosixPath(vscode.workspace.asRelativePath(uri, false));
+}
+
+function getFileExtension(relativePath: string): string | undefined {
+    const fileName = relativePath.split('/').pop() || '';
+    const lastDot = fileName.lastIndexOf('.');
+    if (lastDot <= 0 || lastDot === fileName.length - 1) return undefined;
+    return fileName.slice(lastDot + 1);
+}
+
+function toSelectedFileUris(primary?: vscode.Uri, selection?: vscode.Uri[] | vscode.Uri): vscode.Uri[] {
+    const out: vscode.Uri[] = [];
+
+    const add = (u?: vscode.Uri) => {
+        if (!u) return;
+        if (u.scheme !== 'file') return;
+        if (!out.some((x) => x.toString() === u.toString())) out.push(u);
+    };
+
+    add(primary);
+
+    if (Array.isArray(selection)) {
+        for (const u of selection) add(u);
+    } else {
+        add(selection);
+    }
+
+    return out;
+}
+
+async function removeEmojisFromUri(uri: vscode.Uri): Promise<boolean> {
+    // If the document is open, edit that buffer + save to avoid conflicts with on-disk edits.
+    const openDoc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString() && !d.isClosed);
+    const re = emojiRegex();
+
+    if (openDoc) {
+        const text = openDoc.getText();
+        const newText = text.replace(re, '');
+        if (newText === text) return false;
+
+        const edit = new vscode.WorkspaceEdit();
+        const fullRange = new vscode.Range(openDoc.positionAt(0), openDoc.positionAt(text.length));
+        edit.replace(openDoc.uri, fullRange, newText);
+        const applied = await vscode.workspace.applyEdit(edit);
+        if (!applied) return false;
+        await openDoc.save();
+        return true;
+    }
+
+    // Not open: edit on disk.
+    const bytes = await vscode.workspace.fs.readFile(uri);
+    const text = Buffer.from(bytes).toString('utf8');
+    const newText = text.replace(re, '');
+    if (newText === text) return false;
+
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(newText, 'utf8'));
+    return true;
+}
+
 function normalizeToPosixPath(value: string): string {
     // VS Code may return OS-specific separators; normalize to a stable form.
     return value.replace(/\\/g, '/');
@@ -83,11 +168,38 @@ function isFileExcluded(uri: vscode.Uri): boolean {
     if (patterns.length === 0) return false;
 
     const relativePath = normalizeToPosixPath(vscode.workspace.asRelativePath(uri, false));
-    
-    for (const pattern of patterns) {
-        const matcher = globToRegExp(pattern);
-        if (matcher.test(relativePath)) {
-            return true;
+
+    for (const rawPattern of patterns) {
+        const pattern = normalizeToPosixPath((rawPattern ?? '').trim());
+        if (!pattern) continue;
+
+        const hasSlash = pattern.includes('/');
+        const hasGlobMeta = /[*?]/.test(pattern);
+
+        // Users typically expect:
+        // - "*.md" to match any markdown file anywhere (root + nested)
+        // - "node_modules" to exclude that folder and everything in it
+        // Even though VS Code globbing is richer, we implement a small subset here.
+        const expandedPatterns: string[] = [pattern];
+
+        if (!hasSlash) {
+            // Make basename patterns apply to nested files too.
+            expandedPatterns.push(`**/${pattern}`);
+
+            // If it's a plain name (no glob meta), also treat it as a folder name.
+            // Add both root and nested folder variants because our simple glob->regex
+            // implementation treats "**/" as requiring at least one segment.
+            if (!hasGlobMeta) {
+                expandedPatterns.push(`${pattern}/**`);
+                expandedPatterns.push(`**/${pattern}/**`);
+            }
+        }
+
+        for (const p of expandedPatterns) {
+            const matcher = globToRegExp(p);
+            if (matcher.test(relativePath)) {
+                return true;
+            }
         }
     }
     return false;
@@ -486,6 +598,90 @@ export function activate(context: vscode.ExtensionContext) {
                 editBuilder.replace(fullRange, newText);
             });
         })
+    );
+
+    // Context-menu helpers: quickly add excludePatterns entries.
+    context.subscriptions.push(
+        vscode.commands.registerCommand('emojiChecker.excludeThisFile', async (resourceUri?: vscode.Uri) => {
+            if (!resourceUri) return;
+            const rel = getRelativePathForResource(resourceUri);
+            const added = await addExcludePattern(rel);
+            if (added) {
+                vscode.window.showInformationMessage(`Emoji Eraser: excluded file "${rel}"`);
+            } else {
+                vscode.window.showInformationMessage(`Emoji Eraser: file already excluded ("${rel}")`);
+            }
+        }),
+        vscode.commands.registerCommand('emojiChecker.excludeAllWithSameExtension', async (resourceUri?: vscode.Uri) => {
+            if (!resourceUri) return;
+            const rel = getRelativePathForResource(resourceUri);
+            const ext = getFileExtension(rel);
+            if (!ext) {
+                // No extension: fall back to excluding by file name.
+                const fileName = rel.split('/').pop() || rel;
+                const added = await addExcludePattern(fileName);
+                if (added) {
+                    vscode.window.showInformationMessage(`Emoji Eraser: excluded files named "${fileName}"`);
+                } else {
+                    vscode.window.showInformationMessage(`Emoji Eraser: pattern already present ("${fileName}")`);
+                }
+                return;
+            }
+
+            // Users want to type "*.rs" etc. Our matcher expands this to apply anywhere.
+            const pattern = `*.${ext}`;
+            const added = await addExcludePattern(pattern);
+            if (added) {
+                vscode.window.showInformationMessage(`Emoji Eraser: excluded all "${pattern}" files`);
+            } else {
+                vscode.window.showInformationMessage(`Emoji Eraser: pattern already present ("${pattern}")`);
+            }
+        }),
+        vscode.commands.registerCommand('emojiChecker.excludeThisFolder', async (resourceUri?: vscode.Uri) => {
+            if (!resourceUri) return;
+            const rel = getRelativePathForResource(resourceUri);
+            const pattern = rel.endsWith('/') ? `${rel}**` : `${rel}/**`;
+            const added = await addExcludePattern(pattern);
+            if (added) {
+                vscode.window.showInformationMessage(`Emoji Eraser: excluded folder "${rel}"`);
+            } else {
+                vscode.window.showInformationMessage(`Emoji Eraser: folder already excluded ("${rel}")`);
+            }
+        }),
+        vscode.commands.registerCommand(
+            'emojiChecker.removeEmojisFromFiles',
+            async (resourceUri?: vscode.Uri, selectedUris?: vscode.Uri[]) => {
+                const targets = toSelectedFileUris(resourceUri, selectedUris);
+                if (targets.length === 0) return;
+
+                const label = targets.length === 1
+                    ? getRelativePathForResource(targets[0])
+                    : `${targets.length} files`;
+
+                const choice = await vscode.window.showWarningMessage(
+                    `Remove all emojis from ${label}?`,
+                    { modal: true },
+                    'Remove'
+                );
+                if (choice !== 'Remove') return;
+
+                let changed = 0;
+                for (const u of targets) {
+                    try {
+                        const didChange = await removeEmojisFromUri(u);
+                        if (didChange) changed++;
+                    } catch {
+                        // Ignore individual failures; report summary below.
+                    }
+                }
+
+                vscode.window.showInformationMessage(
+                    changed > 0
+                        ? `Emoji Eraser: removed emojis in ${changed}/${targets.length} file(s)`
+                        : `Emoji Eraser: no emojis found in selected file(s)`
+                );
+            }
+        )
     );
 
     // Code Action provider for quick fix on individual emojis
